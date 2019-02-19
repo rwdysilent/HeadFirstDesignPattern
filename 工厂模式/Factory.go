@@ -44,6 +44,7 @@ func (p *Pizza) Box() {
 //var _ = P(&Pizza{})
 var _ P = &Pizza{}
 
+// pizza 制作工厂函数
 type PizzaFactory func() *Pizza
 
 // NewYork factory
@@ -79,6 +80,48 @@ func init() {
 	RegisterF("Chicago", ChicagoPizzaFactory)
 }
 
+// 原料工厂
+type IngredientFactory interface {
+	CreateDough()
+	CreateSauce()
+	CreateCheese()
+}
+
+type NYIngredientFactory struct {
+	Dough  string
+	Sauce  string
+	Cheese string
+}
+
+func (NIn *NYIngredientFactory) CreateDough() {
+	NIn.Dough = "NewYork factory Dough "
+}
+
+func (NIn *NYIngredientFactory) CreateSauce() {
+	NIn.Sauce = "NewYork factory Sauce "
+}
+
+func (NIn *NYIngredientFactory) CreateCheese() {
+	NIn.Cheese = "NewYork factory Cheese "
+}
+
+type ChicagoIngredientFactory struct {
+	Dough  string
+	Sauce  string
+	Cheese string
+}
+
+func (CHIn *ChicagoIngredientFactory) CreateDough() {
+	CHIn.Dough = "Chicago Dough "
+}
+func (CHIn *ChicagoIngredientFactory) CreateSauce() {
+	CHIn.Sauce = "Chicago Sauce "
+}
+func (CHIn *ChicagoIngredientFactory) CreateCheese() {
+	CHIn.Cheese = "Chicago Cheese "
+}
+
+// 商店工厂
 type PizzaStore interface {
 	CreatePizza(pType string) Pizza
 	OrderPizza(pType string) Pizza
@@ -96,6 +139,7 @@ func (NY *NYPizzaStore) CreatePizza(t string) Pizza {
 	}
 
 	NY.pizza = *pizzaFactory()
+	NY.pizza = NY.Prepare(NY.pizza)
 
 	if t == "cheese" {
 		NY.pizza.Name += " NYCheese"
@@ -111,11 +155,21 @@ func (NY *NYPizzaStore) Cut() {
 	fmt.Println("NewYork Cut...Done")
 }
 
+func (NY *NYPizzaStore) Prepare(pizza Pizza) Pizza {
+	ingredient := &NYIngredientFactory{}
+	ingredient.CreateDough()
+	ingredient.CreateSauce()
+	ingredient.CreateCheese()
+
+	pizza.Type += ingredient.Cheese + ingredient.Sauce + ingredient.Dough
+	return pizza
+}
+
 func (NY *NYPizzaStore) OrderPizza(t string) Pizza {
 	pizza := NY.CreatePizza(t)
-	pizza.Prepare()
 	pizza.Bake()
 	//pizza.Cut()
+	// NewYork Cut func
 	NY.Cut()
 	pizza.Box()
 	return pizza
@@ -128,6 +182,16 @@ type ChicagoPizzaStore struct {
 	city  string
 }
 
+func (CH *ChicagoPizzaStore) Prepare(pizza Pizza) Pizza {
+	ingredient := &ChicagoIngredientFactory{}
+	ingredient.CreateDough()
+	ingredient.CreateSauce()
+	ingredient.CreateCheese()
+
+	pizza.Type += ingredient.Dough + ingredient.Sauce + ingredient.Cheese
+	return pizza
+}
+
 func (CH *ChicagoPizzaStore) CreatePizza(t string) Pizza {
 	pizzaFactory, ok := pizzaFactories[CH.city]
 	if !ok {
@@ -135,6 +199,7 @@ func (CH *ChicagoPizzaStore) CreatePizza(t string) Pizza {
 	}
 
 	CH.pizza = *pizzaFactory()
+	CH.pizza = CH.Prepare(CH.pizza)
 
 	if t == "cheese" {
 		CH.pizza.Name += " ChicagoCheese"
@@ -185,6 +250,6 @@ func main() {
 
 	// example 2
 	store = pizzaStores["Chicago"]
-	pizza = store.OrderPizza("clama")
+	pizza = store.OrderPizza("clam")
 	fmt.Println(pizza)
 }
